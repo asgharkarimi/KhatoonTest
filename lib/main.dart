@@ -83,31 +83,16 @@ class _DateTimePickerState extends State<DateTimePicker> {
   bool _showNewCargoTypeInput =
       false; // Controls visibility of the new cargo type input
   String _costPerTon = ''; // Variable to store the cost per ton of cargo
-  String _shippingCost = ''; // Variable to store the calculated shipping cost
-  String _calculateButtonTitle =
-      'محاسبه هزینه حمل'; // Title of the calculate button
 
   final Box<CargoTypeModel> _cargoTypesBox =
       Hive.box<CargoTypeModel>('cargoTypesBox'); // Hive box for cargo types
   final NumberFormat _numberFormat =
       NumberFormat.decimalPattern('fa'); // برای فرمت‌بندی اعداد فارسی
 
-  late TextEditingController _cargoWeightController;
-  late TextEditingController _costPerTonController;
-
   @override
   void initState() {
     super.initState();
-    _cargoWeightController = TextEditingController();
-    _costPerTonController = TextEditingController();
     _loadCargoTypes(); // Load cargo types when the app starts
-  }
-
-  @override
-  void dispose() {
-    _cargoWeightController.dispose();
-    _costPerTonController.dispose();
-    super.dispose();
   }
 
   void _loadCargoTypes() {
@@ -152,322 +137,275 @@ class _DateTimePickerState extends State<DateTimePicker> {
     }
   }
 
-  void _calculateShippingCost() {
-    if (_cargoWeight.isNotEmpty && _costPerTon.isNotEmpty) {
-      // Convert weight and cost to numbers (remove commas)
-      double weight = double.parse(_cargoWeight.replaceAll(',', ''));
-      double costPerTon = double.parse(_costPerTon.replaceAll(',', ''));
-
-      // Calculate shipping cost
-      double shippingCost = weight * (costPerTon / 1000);
-
-      // Update the button title with the calculated cost
-      setState(() {
-        _shippingCost = _numberFormat.format(shippingCost); // Format the cost
-        _calculateButtonTitle =
-            'هزینه حمل: $_shippingCost ریال'; // Update button title
-      });
-    } else {
-      // Show a warning if weight or cost is not entered
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('لطفاً وزن بار و هزینه حمل هر تن بار را وارد کنید.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('افزودن سرویس بار جدید')),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            // Card for selecting date and time
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(
-                  color: Color(0x80BDBDBD),
-                  width: 1,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Card for selecting date and time
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(
+                    color: Color(0x80BDBDBD),
+                    width: 1,
+                  ),
                 ),
-              ),
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const ListTile(
-                      title: Text(
-                        'انتخاب زمان حرکت و رسیدن به مقصد',
-                        style: TextStyle(
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ListTile(
+                        title: Text(
+                          'انتخاب زمان حرکت و رسیدن به مقصد',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              _showPersianDateTimePicker(context, 1),
+                          style: AppButtonStyle.primaryButtonStyle,
+                          child: Text(_button1Title),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              _showPersianDateTimePicker(context, 2),
+                          style: AppButtonStyle.primaryButtonStyle,
+                          child: Text(_button2Title),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _tripDuration,
+                        style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+                        textDirection: ui.TextDirection.rtl,
                       ),
-                    ),
-                    const Divider(),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _showPersianDateTimePicker(context, 1),
-                        style: AppButtonStyle.primaryButtonStyle,
-                        child: Text(_button1Title),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _showPersianDateTimePicker(context, 2),
-                        style: AppButtonStyle.primaryButtonStyle,
-                        child: Text(_button2Title),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      _tripDuration,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
-                      textDirection: ui.TextDirection.rtl,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Card for add origin and destination
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(
-                  color: Color(0x80BDBDBD),
-                  width: 1,
+              // Card for add origin and destination
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(
+                    color: Color(0x80BDBDBD),
+                    width: 1,
+                  ),
                 ),
-              ),
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const ListTile(
-                      title: Text(
-                        'افزودن مبدا و مقصد',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const Divider(),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'مبدا',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ListTile(
+                        title: Text(
+                          'افزودن مبدا و مقصد',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _origin = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'مقصد',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _destination = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Card for adding cargo details
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(
-                  color: Color(0x80BDBDBD),
-                  width: 1,
-                ),
-              ),
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const ListTile(
-                      title: Text(
-                        'افزودن جزییات بار',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const Divider(),
-                    const SizedBox(height: 10),
-
-                    // Cargo Type Dropdown
-                    DropdownButtonFormField<String>(
-                      value: _selectedCargo,
-                      items: [
-                        ..._cargoTypes.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        DropdownMenuItem<String>(
-                          value: _addNewOption,
-                          child: Text(_addNewOption),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCargo = value!;
-                          _showNewCargoTypeInput = value ==
-                              _addNewOption; // Show input only if "افزودن گزینه جدید" is selected
-                        });
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'نوع بار',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Input for adding new cargo type (visible only when "افزودن گزینه جدید" is selected)
-                    Visibility(
-                      visible: _showNewCargoTypeInput,
-                      child: Column(
-                        children: [
-                          TextField(
-                            decoration: InputDecoration(
-                              labelText: 'افزودن نوع بار جدید',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            enabled: _showNewCargoTypeInput,
-                            // Enable only if visible
-                            onChanged: (value) {
-                              setState(() {
-                                _newCargoType = value;
-                              });
-                            },
+                      const Divider(),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'مبدا',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _addNewCargoType,
-                              style: AppButtonStyle.primaryButtonStyle,
-                              child: const Text('افزودن نوع بار'),
-                            ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _origin = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'مقصد',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _destination = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Card for adding cargo details
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(
+                    color: Color(0x80BDBDBD),
+                    width: 1,
+                  ),
+                ),
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ListTile(
+                        title: Text(
+                          'افزودن جزییات بار',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 10),
+
+                      // Cargo Type Dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedCargo,
+                        items: [
+                          ..._cargoTypes.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          DropdownMenuItem<String>(
+                            value: _addNewOption,
+                            child: Text(_addNewOption),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Cargo Weight Input
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'وزن بار (کیلوگرم)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCargo = value!;
+                            _showNewCargoTypeInput = value ==
+                                _addNewOption; // Show input only if "افزودن گزینه جدید" is selected
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'نوع بار',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
-                      keyboardType: TextInputType.number,
-                      controller: _cargoWeightController,
-                      onChanged: (value) {
-                        // Remove commas for parsing
-                        String rawValue = value.replaceAll(',', '');
-                        if (rawValue.isNotEmpty &&
-                            double.tryParse(rawValue) != null) {
-                          setState(() {
-                            _cargoWeight = rawValue; // Store the raw value
-                            _cargoWeightController.text = _numberFormat.format(
-                                double.parse(rawValue)); // Format the value
-                            _cargoWeightController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(
-                                  offset: _cargoWeightController.text.length),
-                            ); // Move cursor to the end
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                    // Cost per Ton Input
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه حمل هر تن بار (ریال)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      // Input for adding new cargo type (visible only when "افزودن گزینه جدید" is selected)
+                      Visibility(
+                        visible: _showNewCargoTypeInput,
+                        child: Column(
+                          children: [
+                            TextField(
+                              decoration: InputDecoration(
+                                labelText: 'افزودن نوع بار جدید',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              enabled: _showNewCargoTypeInput,
+                              // Enable only if visible
+                              onChanged: (value) {
+                                setState(() {
+                                  _newCargoType = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _addNewCargoType,
+                                style: AppButtonStyle.primaryButtonStyle,
+                                child: const Text('افزودن نوع بار'),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      keyboardType: TextInputType.number,
-                      controller: _costPerTonController,
-                      onChanged: (value) {
-                        // Remove commas for parsing
-                        String rawValue = value.replaceAll(',', '');
-                        if (rawValue.isNotEmpty &&
-                            double.tryParse(rawValue) != null) {
-                          setState(() {
-                            _costPerTon = rawValue; // Store the raw value
-                            _costPerTonController.text = _numberFormat.format(
-                                double.parse(rawValue)); // Format the value
-                            _costPerTonController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(
-                                  offset: _costPerTonController.text.length),
-                            ); // Move cursor to the end
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                    // Calculate Shipping Cost Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _calculateShippingCost,
-                        // Call the calculation function
-                        style: AppButtonStyle.primaryButtonStyle,
-                        child: Text(
-                            _calculateButtonTitle), // Display the button title
+                      // Cargo Weight Input
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'وزن بار (کیلوگرم)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        controller: TextEditingController(
+                          text: _cargoWeight.isNotEmpty
+                              ? _numberFormat.format(
+                                  int.parse(_cargoWeight.replaceAll(',', '')))
+                              : '',
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _cargoWeight = value.replaceAll(
+                                ',', ''); // حذف جداکننده‌ها برای ذخیره‌سازی
+                          });
+                        },
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 20),
+
+                      // Cost per Ton Input
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'هزینه حمل هر تن بار (ریال)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        controller: TextEditingController(
+                          text: _costPerTon.isNotEmpty
+                              ? _numberFormat.format(
+                                  int.parse(_costPerTon.replaceAll(',', '')))
+                              : '',
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _costPerTon = value.replaceAll(
+                                ',', ''); // حذف جداکننده‌ها برای ذخیره‌سازی
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
