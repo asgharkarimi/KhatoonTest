@@ -8,7 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'package:test_app/ThreeDigitInputFormatter.dart';
-import 'appcard_style.dart'; // Import the AppCardStyle
+import 'appcard_style.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,8 +44,7 @@ class MyApp extends StatelessWidget {
           titleSmall: TextStyle(fontSize: 12),
           labelLarge: TextStyle(fontSize: 14),
         ),
-        cardTheme: AppCardStyle
-            .cardTheme, // Apply the card style from appcard_style.dart
+        cardTheme: AppCardStyle.cardTheme,
       ),
       home: DateTimePicker(),
     );
@@ -67,11 +66,27 @@ class _DateTimePickerState extends State<DateTimePicker> {
   Jalali? _selectedDate2;
   TimeOfDay? _selectedTime2;
 
-  // Variables for origin and destination
+  //Travel expenses costs
+  String _tollCost = '';
+  String _fuelCost = '';
+  String _driverCost = '';
+  String _disinfectionCost = '';
+  String _billCost = '';
+  String _highwayTollCost = '';
+  String _loadingTipCost = '';
+  String _unloadingTipCost = '';
+  String _loadingScaleCost = '';
+  String _unloadingScaleCost = '';
+  String _totalCost = '';
+
+  //origin and destination variables
   String _origin = '';
   String _destination = '';
 
-  // Variables for cargo details
+  // Variables for receiver info
+  String _receiverName = '';
+  String _receiverPhone = '';
+
   String _selectedCargo = 'آجر';
   String _calculateButtonTitle = 'محاسبه هزینه حمل';
   String _shippingCost = '';
@@ -142,6 +157,31 @@ class _DateTimePickerState extends State<DateTimePicker> {
         _calculateButtonTitle = 'هزینه حمل: $_shippingCost تومان';
       });
     }
+  }
+
+  void _calculateTotalCost() {
+    double toll = double.tryParse(_tollCost) ?? 0;
+    double fuel = double.tryParse(_fuelCost) ?? 0;
+    double disinfection = double.tryParse(_disinfectionCost) ?? 0;
+    double bill = double.tryParse(_billCost) ?? 0;
+    double highwayToll = double.tryParse(_highwayTollCost) ?? 0;
+    double loadingTip = double.tryParse(_loadingTipCost) ?? 0;
+    double unloadingTip = double.tryParse(_unloadingTipCost) ?? 0;
+    double loadingScale = double.tryParse(_loadingScaleCost) ?? 0;
+    double unloadingScale = double.tryParse(_unloadingScaleCost) ?? 0;
+
+    setState(() {
+      _totalCost = _numberFormatEnglish.format((toll +
+              fuel +
+              disinfection +
+              bill +
+              highwayToll +
+              loadingTip +
+              unloadingTip +
+              loadingScale +
+              unloadingScale)
+          .round());
+    });
   }
 
   @override
@@ -390,6 +430,257 @@ class _DateTimePickerState extends State<DateTimePicker> {
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
+              // New card for travel costs
+              Card(
+                  child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const ListTile(
+                      title: Text(
+                        'افزودن هزینه های سفر',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'هزینه عوارض (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _tollCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'هزینه سوخت (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _fuelCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'هزینه ضدعفونی (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _disinfectionCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'هزینه بارنامه (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _billCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'عوارض آزادراهی (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _highwayTollCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'انعام بارگیری (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _loadingTipCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'انعام زمان تخلیه (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _unloadingTipCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'هزینه باسکول بارگیری (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _loadingScaleCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'هزینه باسکول زمان تخلیه (تومان)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThreeDigitInputFormatter(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _unloadingScaleCost = value.replaceAll(',', '');
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _calculateTotalCost,
+                        style: AppButtonStyle.primaryButtonStyle,
+                        child: Text('محاسبه هزینه های سفر: $_totalCost تومان'),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ListTile(
+                        title: Text(
+                          'اطلاعات تحویل گیرنده',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'نام تحویل گیرنده',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _receiverName = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'شماره تماس تحویل گیرنده',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _receiverPhone = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              )
             ],
           ),
         ),
