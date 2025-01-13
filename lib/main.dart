@@ -79,6 +79,12 @@ class _DateTimePickerState extends State<DateTimePicker> {
   String _unloadingScaleCost = '';
   String _totalCost = '';
 
+  // Variables for driver salary
+  String _baseSalary = '';
+  String _perDistanceSalary = '';
+  String _distance = '';
+  String _driverSalary = '';
+
   //origin and destination variables
   String _origin = '';
   String _destination = '';
@@ -181,6 +187,17 @@ class _DateTimePickerState extends State<DateTimePicker> {
               loadingScale +
               unloadingScale)
           .round());
+    });
+  }
+
+  void _calculateDriverSalary() {
+    double baseSalary = double.tryParse(_baseSalary) ?? 0;
+    double perDistanceSalary = double.tryParse(_perDistanceSalary) ?? 0;
+    double distance = double.tryParse(_distance) ?? 0;
+
+    setState(() {
+      _driverSalary = _numberFormatEnglish
+          .format((baseSalary + (perDistanceSalary * distance)).round());
     });
   }
 
@@ -676,6 +693,92 @@ class _DateTimePickerState extends State<DateTimePicker> {
                             _receiverPhone = value;
                           });
                         },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              //new card for dirver salary
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ListTile(
+                        title: Text(
+                          'محاسبه حقوق راننده',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'حقوق پایه (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _baseSalary = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'حقوق به ازای هر کیلومتر (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _perDistanceSalary = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'مسافت (کیلومتر)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _distance = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _calculateDriverSalary,
+                          style: AppButtonStyle.primaryButtonStyle,
+                          child:
+                              Text('محاسبه حقوق راننده: $_driverSalary تومان'),
+                        ),
                       ),
                     ],
                   ),
