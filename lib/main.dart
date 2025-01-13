@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'appbuttons_style.dart';
-import 'cargo_type_model.dart'; // Import the Hive model
+import 'cargo_type_model.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
-import 'package:flutter_masked_text2/flutter_masked_text2.dart';
+import 'package:test_app/ThreeDigitInputFormatter.dart';
+import 'appcard_style.dart'; // Import the AppCardStyle
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
-  await Hive.initFlutter(); // Initialize Hive
-  Hive.registerAdapter(CargoTypeModelAdapter()); // Register the Hive adapter
-  await Hive.openBox<CargoTypeModel>(
-      'cargoTypesBox'); // Open a Hive box for cargo types
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  Hive.registerAdapter(CargoTypeModelAdapter());
+  await Hive.openBox<CargoTypeModel>('cargoTypesBox');
   runApp(MyApp());
 }
 
@@ -25,8 +26,8 @@ class MyApp extends StatelessWidget {
       title: 'افزودن سرویس حدید',
       locale: const Locale('fa', ''),
       supportedLocales: const [
-        Locale('fa', ''), // Persian
-        Locale('en', ''), // English (optional)
+        Locale('fa', ''),
+        Locale('en', ''),
       ],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -43,6 +44,8 @@ class MyApp extends StatelessWidget {
           titleSmall: TextStyle(fontSize: 12),
           labelLarge: TextStyle(fontSize: 14),
         ),
+        cardTheme: AppCardStyle
+            .cardTheme, // Apply the card style from appcard_style.dart
       ),
       home: DateTimePicker(),
     );
@@ -70,33 +73,28 @@ class _DateTimePickerState extends State<DateTimePicker> {
 
   // Variables for cargo details
   String _selectedCargo = 'آجر';
-  final List<String> _cargoTypes = [
-    'آجر',
-    'ماسه',
-    'قند',
-    'چوب'
-  ]; // Main cargo types
-  final String _addNewOption =
-      'افزودن گزینه جدید'; // Constant for "افزودن گزینه جدید"
+  String _calculateButtonTitle = 'محاسبه هزینه حمل';
+  String _shippingCost = '';
+  final _numberFormatEnglish = NumberFormat("#,###", 'en_US');
+
+  final List<String> _cargoTypes = ['آجر', 'ماسه', 'قند', 'چوب'];
+  final String _addNewOption = 'افزودن گزینه جدید';
   String _cargoWeight = '';
-  String _newCargoType = ''; // For user to add new cargo type
-  bool _showNewCargoTypeInput =
-      false; // Controls visibility of the new cargo type input
-  String _costPerTon = ''; // Variable to store the cost per ton of cargo
+  String _newCargoType = '';
+  bool _showNewCargoTypeInput = false;
+  String _costPerTon = '';
 
   final Box<CargoTypeModel> _cargoTypesBox =
-      Hive.box<CargoTypeModel>('cargoTypesBox'); // Hive box for cargo types
-  final NumberFormat _numberFormat =
-      NumberFormat.decimalPattern('fa'); // برای فرمت‌بندی اعداد فارسی
+      Hive.box<CargoTypeModel>('cargoTypesBox');
+  final NumberFormat _numberFormat = NumberFormat.decimalPattern('fa');
 
   @override
   void initState() {
     super.initState();
-    _loadCargoTypes(); // Load cargo types when the app starts
+    _loadCargoTypes();
   }
 
   void _loadCargoTypes() {
-    // Load cargo types from Hive
     final savedCargoTypes = _cargoTypesBox.values.toList();
     if (savedCargoTypes.isNotEmpty) {
       setState(() {
@@ -106,19 +104,17 @@ class _DateTimePickerState extends State<DateTimePicker> {
   }
 
   void _saveCargoType(String cargoType) {
-    // Save cargo type to Hive
     final cargo = CargoTypeModel(cargoType);
     _cargoTypesBox.add(cargo);
   }
 
   bool _isCargoTypeDuplicate(String cargoType) {
-    return _cargoTypes.contains(cargoType); // Check if the item already exists
+    return _cargoTypes.contains(cargoType);
   }
 
   void _addNewCargoType() {
     if (_newCargoType.isNotEmpty) {
       if (_isCargoTypeDuplicate(_newCargoType)) {
-        // Show a warning if the item already exists
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('این نوع بار قبلاً اضافه شده است.'),
@@ -127,13 +123,24 @@ class _DateTimePickerState extends State<DateTimePicker> {
         );
       } else {
         setState(() {
-          _cargoTypes.add(_newCargoType); // Add the new item to the main list
-          _selectedCargo = _newCargoType; // Select the new item
-          _saveCargoType(_newCargoType); // Save to Hive
-          _newCargoType = ''; // Clear the input field
-          _showNewCargoTypeInput = false; // Hide the input field
+          _cargoTypes.add(_newCargoType);
+          _selectedCargo = _newCargoType;
+          _saveCargoType(_newCargoType);
+          _newCargoType = '';
+          _showNewCargoTypeInput = false;
         });
       }
+    }
+  }
+
+  void _calculateShippingCost() {
+    if (_cargoWeight.isNotEmpty && _costPerTon.isNotEmpty) {
+      double weight = double.parse(_cargoWeight);
+      double cost = double.parse(_costPerTon);
+      setState(() {
+        _shippingCost = _numberFormatEnglish.format((weight * cost).round());
+        _calculateButtonTitle = 'هزینه حمل: $_shippingCost تومان';
+      });
     }
   }
 
@@ -150,14 +157,6 @@ class _DateTimePickerState extends State<DateTimePicker> {
             children: [
               // Card for selecting date and time
               Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(
-                    color: Color(0x80BDBDBD),
-                    width: 1,
-                  ),
-                ),
-                elevation: 0,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -207,14 +206,6 @@ class _DateTimePickerState extends State<DateTimePicker> {
 
               // Card for add origin and destination
               Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(
-                    color: Color(0x80BDBDBD),
-                    width: 1,
-                  ),
-                ),
-                elevation: 0,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -265,14 +256,6 @@ class _DateTimePickerState extends State<DateTimePicker> {
 
               // Card for adding cargo details
               Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(
-                    color: Color(0x80BDBDBD),
-                    width: 1,
-                  ),
-                ),
-                elevation: 0,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -307,8 +290,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
                         onChanged: (value) {
                           setState(() {
                             _selectedCargo = value!;
-                            _showNewCargoTypeInput = value ==
-                                _addNewOption; // Show input only if "افزودن گزینه جدید" is selected
+                            _showNewCargoTypeInput = value == _addNewOption;
                           });
                         },
                         decoration: InputDecoration(
@@ -320,7 +302,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Input for adding new cargo type (visible only when "افزودن گزینه جدید" is selected)
+                      // Input for adding new cargo type
                       Visibility(
                         visible: _showNewCargoTypeInput,
                         child: Column(
@@ -333,7 +315,6 @@ class _DateTimePickerState extends State<DateTimePicker> {
                                 ),
                               ),
                               enabled: _showNewCargoTypeInput,
-                              // Enable only if visible
                               onChanged: (value) {
                                 setState(() {
                                   _newCargoType = value;
@@ -363,16 +344,13 @@ class _DateTimePickerState extends State<DateTimePicker> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        controller: TextEditingController(
-                          text: _cargoWeight.isNotEmpty
-                              ? _numberFormat.format(
-                                  int.parse(_cargoWeight.replaceAll(',', '')))
-                              : '',
-                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
                         onChanged: (value) {
                           setState(() {
-                            _cargoWeight = value.replaceAll(
-                                ',', ''); // حذف جداکننده‌ها برای ذخیره‌سازی
+                            _cargoWeight = value.replaceAll(',', '');
                           });
                         },
                       ),
@@ -381,24 +359,32 @@ class _DateTimePickerState extends State<DateTimePicker> {
                       // Cost per Ton Input
                       TextField(
                         decoration: InputDecoration(
-                          labelText: 'هزینه حمل هر تن بار (ریال)',
+                          labelText: 'هزینه حمل هر تن بار (تومان)',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        controller: TextEditingController(
-                          text: _costPerTon.isNotEmpty
-                              ? _numberFormat.format(
-                                  int.parse(_costPerTon.replaceAll(',', '')))
-                              : '',
-                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
                         onChanged: (value) {
                           setState(() {
-                            _costPerTon = value.replaceAll(
-                                ',', ''); // حذف جداکننده‌ها برای ذخیره‌سازی
+                            _costPerTon = value.replaceAll(',', '');
                           });
                         },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Calculate Shipping Cost Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _calculateShippingCost,
+                          style: AppButtonStyle.primaryButtonStyle,
+                          child: Text(_calculateButtonTitle),
+                        ),
                       ),
                     ],
                   ),
@@ -486,129 +472,6 @@ class _DateTimePickerState extends State<DateTimePicker> {
             _selectedTime2 = selectedTime;
           }
         });
-
-        // Variables for cargo details
-        String _selectedCargo = 'آجر';
-        final List<String> _cargoTypes = ['آجر', 'ماسه', 'قند', 'چوب'];
-        String _cargoWeight = '';
-        String _newCargoType = ''; // For user to add new cargo type
-
-        final Box<CargoTypeModel> _cargoTypesBox = Hive.box<CargoTypeModel>(
-            'cargoTypesBox'); // Hive box for cargo types
-
-        void _loadCargoTypes() {
-          // Load cargo types from Hive
-          final savedCargoTypes = _cargoTypesBox.values.toList();
-          if (savedCargoTypes.isNotEmpty) {
-            setState(() {
-              _cargoTypes
-                  .addAll(savedCargoTypes.map((cargo) => cargo.name).toList());
-            });
-          }
-        }
-
-        @override
-        void initState() {
-          super.initState();
-          _loadCargoTypes(); // Load cargo types when the app starts
-        }
-
-        void _saveCargoType(String cargoType) {
-          // Save cargo type to Hive
-          final cargo = CargoTypeModel(cargoType);
-          _cargoTypesBox.put(cargoType, cargo);
-        }
-
-        void _updateSelectionCount(String cargoType) {
-          final cargo = _cargoTypesBox.values.firstWhere(
-            (cargo) => cargo.name == cargoType,
-            orElse: () => CargoTypeModel(cargoType),
-          );
-
-          cargo.selectionCount++; // Increment selection count
-          _cargoTypesBox.put(cargoType, cargo); // Save to Hive
-        }
-
-        List<String> _getSortedCargoTypes() {
-          final savedCargoTypes = _cargoTypesBox.values.toList();
-          savedCargoTypes.sort((a, b) => b.selectionCount
-              .compareTo(a.selectionCount)); // Sort by selection count
-          return savedCargoTypes.map((cargo) => cargo.name).toList();
-        }
-
-        @override
-        Widget build(BuildContext context) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Center(child: Text('افزودن سرویس بار جدید')),
-            ),
-            body: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  // ... (other widgets)
-
-                  // Card for adding cargo details
-                  Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(
-                        color: Color(0x80BDBDBD),
-                        width: 1,
-                      ),
-                    ),
-                    elevation: 0,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const ListTile(
-                            title: Text(
-                              'افزودن جزییات بار',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const Divider(),
-                          const SizedBox(height: 10),
-
-                          // Cargo Type Dropdown
-                          DropdownButtonFormField<String>(
-                            value: _selectedCargo,
-                            items: _getSortedCargoTypes().map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCargo = value!;
-                                _updateSelectionCount(
-                                    value); // Update selection count
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'نوع بار',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // ... (other widgets)
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
       }
     }
   }
