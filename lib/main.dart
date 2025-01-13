@@ -184,7 +184,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
   String _costPerTon = '';
 
   final Box<CargoTypeModel> _cargoTypesBox =
-  Hive.box<CargoTypeModel>('cargoTypesBox');
+      Hive.box<CargoTypeModel>('cargoTypesBox');
   final NumberFormat _numberFormat = NumberFormat.decimalPattern('fa');
 
   // Variables for travel costs
@@ -199,6 +199,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
   String _loadingScaleCost = '';
   String _unloadingScaleCost = '';
   String _totalCost = '';
+  String _otherCost = '';
   String _finalTotalCost = ''; // New variable to store the final cost
   // Variables for receiver info
   String _receiverName = '';
@@ -279,43 +280,45 @@ class _DateTimePickerState extends State<DateTimePicker> {
     double unloadingTip = double.tryParse(_unloadingTipCost) ?? 0;
     double loadingScale = double.tryParse(_loadingScaleCost) ?? 0;
     double unloadingScale = double.tryParse(_unloadingScaleCost) ?? 0;
+    double otherCost =
+        double.tryParse(_otherCost) ?? 0; // اضافه کردن سایر هزینه‌ها
 
-    final total = (toll +
-        fuel +
-        disinfection +
-        bill +
-        highwayToll +
-        loadingTip +
-        unloadingTip +
-        loadingScale +
-        unloadingScale)
-        .round();
     setState(() {
-      _totalCost = _numberFormatEnglish.format(total);
-      _finalTotalCost = _totalCost; // Store the total cost here
-
+      _totalCost = _numberFormatEnglish.format((toll +
+              fuel +
+              disinfection +
+              bill +
+              highwayToll +
+              loadingTip +
+              unloadingTip +
+              loadingScale +
+              unloadingScale +
+              otherCost) // افزودن سایر هزینه‌ها به محاسبات
+          .round());
     });
   }
 
   void _calculateDriverSalary() {
     double perDistanceSalary = double.tryParse(_perDistanceSalary) ?? 0;
     double distance = double.tryParse(_distance) ?? 0;
-    double shippingCost = double.tryParse(_finalShippingCost.replaceAll(',', '')) ?? 0;
-    double totalCost = double.tryParse(_finalTotalCost.replaceAll(',', '')) ?? 0;
-    double baseSalaryPercentage = double.tryParse(_baseSalary) ?? 0; // Get the percentage from _baseSalary
-
+    double shippingCost =
+        double.tryParse(_finalShippingCost.replaceAll(',', '')) ?? 0;
+    double totalCost =
+        double.tryParse(_finalTotalCost.replaceAll(',', '')) ?? 0;
+    double baseSalaryPercentage = double.tryParse(_baseSalary) ??
+        0; // Get the percentage from _baseSalary
 
     double calculatedBaseSalary = 0;
-    if(shippingCost - totalCost > 0){
-      calculatedBaseSalary = (baseSalaryPercentage/ 100 ) * (shippingCost - totalCost);
+    if (shippingCost - totalCost > 0) {
+      calculatedBaseSalary =
+          (baseSalaryPercentage / 100) * (shippingCost - totalCost);
     }
 
-    double calculatedSalary = calculatedBaseSalary + (perDistanceSalary * distance);
-
+    double calculatedSalary =
+        calculatedBaseSalary + (perDistanceSalary * distance);
 
     setState(() {
-      _driverSalary = _numberFormatEnglish
-          .format(calculatedSalary.round());
+      _driverSalary = _numberFormatEnglish.format(calculatedSalary.round());
     });
   }
 
@@ -566,7 +569,8 @@ class _DateTimePickerState extends State<DateTimePicker> {
                         _finalShippingCost.isEmpty
                             ? 'هزینه حمل محاسبه نشده است'
                             : 'هزینه حمل: $_finalShippingCost تومان',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -742,6 +746,25 @@ class _DateTimePickerState extends State<DateTimePicker> {
                           });
                         },
                       ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'سایر هزینه‌ها (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _otherCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
@@ -749,7 +772,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
                           onPressed: _calculateTotalCost,
                           style: AppButtonStyle.primaryButtonStyle,
                           child:
-                          Text('محاسبه هزینه های سفر: $_totalCost تومان'),
+                              Text('محاسبه هزینه های سفر: $_totalCost تومان'),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -757,7 +780,8 @@ class _DateTimePickerState extends State<DateTimePicker> {
                         _finalTotalCost.isEmpty
                             ? 'هزینه نهایی سفر محاسبه نشده است'
                             : 'هزینه نهایی سفر: $_finalTotalCost تومان',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -897,7 +921,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
                           onPressed: _calculateDriverSalary,
                           style: AppButtonStyle.primaryButtonStyle,
                           child:
-                          Text('محاسبه حقوق راننده: $_driverSalary تومان'),
+                              Text('محاسبه حقوق راننده: $_driverSalary تومان'),
                         ),
                       ),
                     ],
@@ -947,7 +971,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content:
-                Text('زمان رسیدن به مقصد نمی‌تواند قبل از زمان شروع باشد.'),
+                    Text('زمان رسیدن به مقصد نمی‌تواند قبل از زمان شروع باشد.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -981,7 +1005,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
             _selectedTime1 = selectedTime;
           } else if (buttonId == 2) {
             _button2Title =
-            'زمان رسیدن به مقصد: $formattedDate - $formattedTime';
+                'زمان رسیدن به مقصد: $formattedDate - $formattedTime';
             _selectedDate2 = selectedDate;
             _selectedTime2 = selectedTime;
           }
