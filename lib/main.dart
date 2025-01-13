@@ -46,7 +46,108 @@ class MyApp extends StatelessWidget {
         ),
         cardTheme: AppCardStyle.cardTheme,
       ),
-      home: DateTimePicker(),
+      home: DateTimePicker(), // Start with the login page
+    );
+  }
+}
+
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _userNumberController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String _errorMessage = '';
+
+  @override
+  void dispose() {
+    _userNumberController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _login() {
+    String userNumber = _userNumberController.text;
+    String password = _passwordController.text;
+
+    if (userNumber == '09199541276' && password == '123') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DateTimePicker()),
+      );
+      setState(() {
+        _errorMessage = '';
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'شماره تماس یا رمز عبور اشتباه است.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('ورود')),
+      body: Center(
+        // Center the card horizontally
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Card(
+            // Wrapped the content with a Card
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Text(
+                        _errorMessage,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  TextField(
+                    controller: _userNumberController,
+                    decoration: const InputDecoration(
+                      labelText: 'شماره تماس',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'رمز عبور',
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    // Ensure the parent container takes full width
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _login();
+                      },
+                      style: AppButtonStyle.primaryButtonStyle,
+                      child: Text('ورود'),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -66,7 +167,27 @@ class _DateTimePickerState extends State<DateTimePicker> {
   Jalali? _selectedDate2;
   TimeOfDay? _selectedTime2;
 
-  //Travel expenses costs
+  String _origin = '';
+  String _destination = '';
+
+  String _selectedCargo = 'آجر';
+  String _calculateButtonTitle = 'محاسبه هزینه حمل';
+  String _shippingCost = '';
+  String _finalShippingCost = '';
+  final _numberFormatEnglish = NumberFormat("#,###", 'en_US');
+
+  final List<String> _cargoTypes = ['آجر', 'ماسه', 'قند', 'چوب'];
+  final String _addNewOption = 'افزودن گزینه جدید';
+  String _cargoWeight = '';
+  String _newCargoType = '';
+  bool _showNewCargoTypeInput = false;
+  String _costPerTon = '';
+
+  final Box<CargoTypeModel> _cargoTypesBox =
+  Hive.box<CargoTypeModel>('cargoTypesBox');
+  final NumberFormat _numberFormat = NumberFormat.decimalPattern('fa');
+
+  // Variables for travel costs
   String _tollCost = '';
   String _fuelCost = '';
   String _driverCost = '';
@@ -78,36 +199,16 @@ class _DateTimePickerState extends State<DateTimePicker> {
   String _loadingScaleCost = '';
   String _unloadingScaleCost = '';
   String _totalCost = '';
+  String _finalTotalCost = ''; // New variable to store the final cost
+  // Variables for receiver info
+  String _receiverName = '';
+  String _receiverPhone = '';
 
   // Variables for driver salary
   String _baseSalary = '';
   String _perDistanceSalary = '';
   String _distance = '';
   String _driverSalary = '';
-
-  //origin and destination variables
-  String _origin = '';
-  String _destination = '';
-
-  // Variables for receiver info
-  String _receiverName = '';
-  String _receiverPhone = '';
-
-  String _selectedCargo = 'آجر';
-  String _calculateButtonTitle = 'محاسبه هزینه حمل';
-  String _shippingCost = '';
-  final _numberFormatEnglish = NumberFormat("#,###", 'en_US');
-
-  final List<String> _cargoTypes = ['آجر', 'ماسه', 'قند', 'چوب'];
-  final String _addNewOption = 'افزودن گزینه جدید';
-  String _cargoWeight = '';
-  String _newCargoType = '';
-  bool _showNewCargoTypeInput = false;
-  String _costPerTon = '';
-
-  final Box<CargoTypeModel> _cargoTypesBox =
-      Hive.box<CargoTypeModel>('cargoTypesBox');
-  final NumberFormat _numberFormat = NumberFormat.decimalPattern('fa');
 
   @override
   void initState() {
@@ -158,9 +259,12 @@ class _DateTimePickerState extends State<DateTimePicker> {
     if (_cargoWeight.isNotEmpty && _costPerTon.isNotEmpty) {
       double weight = double.parse(_cargoWeight);
       double cost = double.parse(_costPerTon);
+      double totalCost =
+          (weight * cost) / 1000; // Divide by 1000 to remove three zeros
       setState(() {
-        _shippingCost = _numberFormatEnglish.format((weight * cost).round());
+        _shippingCost = _numberFormatEnglish.format(totalCost.round());
         _calculateButtonTitle = 'هزینه حمل: $_shippingCost تومان';
+        _finalShippingCost = _shippingCost;
       });
     }
   }
@@ -176,28 +280,42 @@ class _DateTimePickerState extends State<DateTimePicker> {
     double loadingScale = double.tryParse(_loadingScaleCost) ?? 0;
     double unloadingScale = double.tryParse(_unloadingScaleCost) ?? 0;
 
+    final total = (toll +
+        fuel +
+        disinfection +
+        bill +
+        highwayToll +
+        loadingTip +
+        unloadingTip +
+        loadingScale +
+        unloadingScale)
+        .round();
     setState(() {
-      _totalCost = _numberFormatEnglish.format((toll +
-              fuel +
-              disinfection +
-              bill +
-              highwayToll +
-              loadingTip +
-              unloadingTip +
-              loadingScale +
-              unloadingScale)
-          .round());
+      _totalCost = _numberFormatEnglish.format(total);
+      _finalTotalCost = _totalCost; // Store the total cost here
+
     });
   }
 
   void _calculateDriverSalary() {
-    double baseSalary = double.tryParse(_baseSalary) ?? 0;
     double perDistanceSalary = double.tryParse(_perDistanceSalary) ?? 0;
     double distance = double.tryParse(_distance) ?? 0;
+    double shippingCost = double.tryParse(_finalShippingCost.replaceAll(',', '')) ?? 0;
+    double totalCost = double.tryParse(_finalTotalCost.replaceAll(',', '')) ?? 0;
+    double baseSalaryPercentage = double.tryParse(_baseSalary) ?? 0; // Get the percentage from _baseSalary
+
+
+    double calculatedBaseSalary = 0;
+    if(shippingCost - totalCost > 0){
+      calculatedBaseSalary = (baseSalaryPercentage/ 100 ) * (shippingCost - totalCost);
+    }
+
+    double calculatedSalary = calculatedBaseSalary + (perDistanceSalary * distance);
+
 
     setState(() {
       _driverSalary = _numberFormatEnglish
-          .format((baseSalary + (perDistanceSalary * distance)).round());
+          .format(calculatedSalary.round());
     });
   }
 
@@ -443,6 +561,14 @@ class _DateTimePickerState extends State<DateTimePicker> {
                           child: Text(_calculateButtonTitle),
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _finalShippingCost.isEmpty
+                            ? 'هزینه حمل محاسبه نشده است'
+                            : 'هزینه حمل: $_finalShippingCost تومان',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -450,203 +576,196 @@ class _DateTimePickerState extends State<DateTimePicker> {
               const SizedBox(height: 20),
               // New card for travel costs
               Card(
-                  child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const ListTile(
-                      title: Text(
-                        'افزودن هزینه های سفر',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ListTile(
+                        title: Text(
+                          'افزودن هزینه های سفر',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'هزینه سوخت (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _fuelCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'هزینه ضدعفونی (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _disinfectionCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'هزینه بارنامه (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _billCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'عوارض آزادراهی پرداخت شده (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _highwayTollCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'انعام بارگیری (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _loadingTipCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'انعام زمان تخلیه (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _unloadingTipCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'هزینه باسکول بارگیری (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _loadingScaleCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'هزینه باسکول زمان تخلیه (تومان)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThreeDigitInputFormatter(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _unloadingScaleCost = value.replaceAll(',', '');
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _calculateTotalCost,
+                          style: AppButtonStyle.primaryButtonStyle,
+                          child:
+                          Text('محاسبه هزینه های سفر: $_totalCost تومان'),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _finalTotalCost.isEmpty
+                            ? 'هزینه نهایی سفر محاسبه نشده است'
+                            : 'هزینه نهایی سفر: $_finalTotalCost تومان',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
-                    ),
-                    const Divider(),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه عوارض (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _tollCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه سوخت (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _fuelCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه ضدعفونی (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _disinfectionCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه بارنامه (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _billCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'عوارض آزادراهی (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _highwayTollCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'انعام بارگیری (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _loadingTipCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'انعام زمان تخلیه (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _unloadingTipCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه باسکول بارگیری (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _loadingScaleCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'هزینه باسکول زمان تخلیه (تومان)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThreeDigitInputFormatter(),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _unloadingScaleCost = value.replaceAll(',', '');
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _calculateTotalCost,
-                        style: AppButtonStyle.primaryButtonStyle,
-                        child: Text('محاسبه هزینه های سفر: $_totalCost تومان'),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              )),
+              ),
+              const SizedBox(height: 20),
+              // New card for receiver info
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -698,7 +817,8 @@ class _DateTimePickerState extends State<DateTimePicker> {
                   ),
                 ),
               ),
-              //new card for dirver salary
+              const SizedBox(height: 20),
+              // New card for driver salary
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -717,7 +837,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
                       const SizedBox(height: 10),
                       TextField(
                         decoration: InputDecoration(
-                          labelText: 'حقوق پایه (تومان)',
+                          labelText: 'درصد حقوق پایه',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -777,13 +897,13 @@ class _DateTimePickerState extends State<DateTimePicker> {
                           onPressed: _calculateDriverSalary,
                           style: AppButtonStyle.primaryButtonStyle,
                           child:
-                              Text('محاسبه حقوق راننده: $_driverSalary تومان'),
+                          Text('محاسبه حقوق راننده: $_driverSalary تومان'),
                         ),
                       ),
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -827,7 +947,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content:
-                    Text('زمان رسیدن به مقصد نمی‌تواند قبل از زمان شروع باشد.'),
+                Text('زمان رسیدن به مقصد نمی‌تواند قبل از زمان شروع باشد.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -861,7 +981,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
             _selectedTime1 = selectedTime;
           } else if (buttonId == 2) {
             _button2Title =
-                'زمان رسیدن به مقصد: $formattedDate - $formattedTime';
+            'زمان رسیدن به مقصد: $formattedDate - $formattedTime';
             _selectedDate2 = selectedDate;
             _selectedTime2 = selectedTime;
           }
