@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
+import 'package:test_app/app_documents.dart';
+import 'package:test_app/service_model.dart';
+import 'UserProfilePage.dart';
 import 'appbuttons_style.dart';
 import 'cargo_type_model.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -14,7 +17,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(CargoTypeModelAdapter());
+  Hive.registerAdapter(
+      ServiceModelAdapter()); // ثبت TypeAdapter برای ServiceModel
   await Hive.openBox<CargoTypeModel>('cargoTypesBox');
+  await Hive.openBox<ServiceModel>(
+      'serviceBox'); // ایجاد Box برای ذخیره سرویس‌ها
   runApp(MyApp());
 }
 
@@ -46,7 +53,62 @@ class MyApp extends StatelessWidget {
         ),
         cardTheme: AppCardStyle.cardTheme,
       ),
-      home: DateTimePicker(), // Start with the login page
+      home: MainScreen(), // تغییر به صفحه اصلی با BottomNavigationBar
+    );
+  }
+}
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 2; // ایندکس صفحه کاربری (صفحه پیش‌فرض)
+
+  // لیست صفحات
+  final List<Widget> _pages = [
+    DateTimePicker(), // صفحه افزودن سرویس جدید
+    AddDocumentsPage(), // صفحه افزودن مدارک
+    UserProfilePage(), // صفحه کاربری
+  ];
+
+  // تغییر صفحه هنگام کلیک روی آیتم‌های BottomNavigationBar
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex], // نمایش صفحه فعلی
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        // ایندکس صفحه فعلی
+        onTap: _onItemTapped,
+        // تغییر صفحه هنگام کلیک
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'افزودن سرویس جدید',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment),
+            label: 'افزودن مدارک',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'صفحه کاربری',
+          ),
+        ],
+        selectedItemColor: Colors.blue,
+        // رنگ آیتم انتخاب شده
+        unselectedItemColor: Colors.grey, // رنگ آیتم‌های غیرفعال
+      ),
     );
   }
 }
@@ -320,6 +382,48 @@ class _DateTimePickerState extends State<DateTimePicker> {
     setState(() {
       _driverSalary = _numberFormatEnglish.format(calculatedSalary.round());
     });
+  }
+
+  void _saveToDatabase() {
+    // ایجاد شیء ServiceModel با داده‌های وارد شده
+    final serviceData = ServiceModel(
+      origin: _origin,
+      destination: _destination,
+      cargoType: _selectedCargo,
+      cargoWeight: _cargoWeight,
+      shippingCost: _finalShippingCost,
+      totalCost: _totalCost,
+      receiverName: _receiverName,
+      receiverPhone: _receiverPhone,
+      driverSalary: _driverSalary,
+      tollCost: _tollCost,
+      fuelCost: _fuelCost,
+      disinfectionCost: _disinfectionCost,
+      billCost: _billCost,
+      highwayTollCost: _highwayTollCost,
+      loadingTipCost: _loadingTipCost,
+      unloadingTipCost: _unloadingTipCost,
+      loadingScaleCost: _loadingScaleCost,
+      unloadingScaleCost: _unloadingScaleCost,
+      otherCost: _otherCost,
+      tripDuration: _tripDuration,
+      selectedDate1: _selectedDate1?.formatFullDate() ?? '',
+      selectedTime1: _selectedTime1?.format(context) ?? '',
+      selectedDate2: _selectedDate2?.formatFullDate() ?? '',
+      selectedTime2: _selectedTime2?.format(context) ?? '',
+    );
+
+    // ذخیره در Hive
+    final serviceBox = Hive.box<ServiceModel>('serviceBox');
+    serviceBox.add(serviceData);
+
+    // نمایش پیام موفقیت
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('داده‌ها با موفقیت ذخیره شدند.'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   @override
@@ -925,6 +1029,18 @@ class _DateTimePickerState extends State<DateTimePicker> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20), // فاصله از ویجت قبلی
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity, // عرض کامل
+                  child: ElevatedButton(
+                    onPressed: _saveToDatabase, // تابع ذخیره در پایگاه داده
+                    style: AppButtonStyle.primaryButtonStyle, // استایل دکمه
+                    child: const Text('ذخیره در پایگاه داده'),
                   ),
                 ),
               ),
