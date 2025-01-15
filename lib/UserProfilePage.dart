@@ -74,40 +74,55 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     // ایجاد ۵ سرویس تستی
     for (int i = 0; i < 5; i++) {
-      final service = ServiceModel(
-        origin: iranCities[i % iranCities.length],
-        // انتخاب شهر مبدا
-        destination: iranCities[(i + 1) % iranCities.length],
-        // انتخاب شهر مقصد
-        cargoType: 'نوع بار ${i + 1}',
-        shippingCost: '${(i + 1) * 100000}',
-        // هزینه حمل
-        driverSalary: '${(i + 1) * 50000}',
-        // حقوق راننده
-        selectedDate1: '1402/01/${10 + i}',
-        // تاریخ حرکت
-        selectedTime1: '${10 + i}:00',
-        // زمان حرکت
-        selectedDate2: '1402/01/${12 + i}',
-        // تاریخ رسیدن
-        selectedTime2: '${12 + i}:00',
-        cargoWeight: '',
-        totalCost: '',
-        receiverName: '',
-        receiverPhone: '',
-        tollCost: '',
-        fuelCost: '',
-        disinfectionCost: '',
-        billCost: '',
-        highwayTollCost: '',
-        loadingTipCost: '',
-        unloadingTipCost: '',
-        loadingScaleCost: '',
-        unloadingScaleCost: '',
-        otherCost: '',
-        tripDuration: '', // زمان رسیدن
-      );
-      serviceBox.add(service); // افزودن سرویس به دیتابیس
+      final origin = iranCities[i % iranCities.length]; // انتخاب شهر مبدا
+      final destination =
+          iranCities[(i + 1) % iranCities.length]; // انتخاب شهر مقصد
+      final selectedDate1 = '1402/01/${10 + i}'; // تاریخ حرکت
+      final selectedTime1 = '${10 + i}:00'; // زمان حرکت
+
+      // بررسی وجود سرویس تکراری
+      final isDuplicate = serviceBox.values.any((service) =>
+          service.origin == origin &&
+          service.destination == destination &&
+          service.selectedDate1 == selectedDate1 &&
+          service.selectedTime1 == selectedTime1);
+
+      // اگر سرویس تکراری وجود نداشت، آن را اضافه کنید
+      if (!isDuplicate) {
+        final service = ServiceModel(
+          origin: origin,
+          destination: destination,
+          cargoType: 'نوع بار ${i + 1}',
+          shippingCost: '${(i + 1) * 100000}',
+          // هزینه حمل
+          driverSalary: '${(i + 1) * 50000}',
+          // حقوق راننده
+          selectedDate1: selectedDate1,
+          // تاریخ حرکت
+          selectedTime1: selectedTime1,
+          // زمان حرکت
+          selectedDate2: '1402/01/${12 + i}',
+          // تاریخ رسیدن
+          selectedTime2: '${12 + i}:00',
+          // زمان رسیدن
+          cargoWeight: '',
+          totalCost: '',
+          receiverName: '',
+          receiverPhone: '',
+          tollCost: '',
+          fuelCost: '',
+          disinfectionCost: '',
+          billCost: '',
+          highwayTollCost: '',
+          loadingTipCost: '',
+          unloadingTipCost: '',
+          loadingScaleCost: '',
+          unloadingScaleCost: '',
+          otherCost: '',
+          tripDuration: '',
+        );
+        serviceBox.add(service); // افزودن سرویس به دیتابیس
+      }
     }
 
     _loadServices(); // بارگذاری مجدد لیست سرویس‌ها
@@ -224,15 +239,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // عنوان سرویس
-            Text(
-              'سرویس باربری',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
             SizedBox(height: 4),
             // Reduced space
             // نمایش مبدا و مقصد به صورت "سرویس بار از مبدا origin به مقصد destination"
