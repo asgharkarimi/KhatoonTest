@@ -103,3 +103,4 @@ class ServiceModel {
     required this.selectedTime2,
   });
 }
+
